@@ -220,7 +220,7 @@ graph LR
 ### 3.2 Repository Structure
 
 ```
-sentinal-ops/
+sentinel-ops/
 ├── agent/                          # Agent Controller (FastAPI)
 │   ├── main.py                     # FastAPI app entrypoint
 │   ├── config.py                   # Settings (pydantic-settings)
@@ -266,8 +266,8 @@ sentinal-ops/
 │   ├── ecs.tf
 │   ├── rds.tf
 │   └── opensearch.tf
-├── sentinal_ops_prd.md
-└── sentinal_ops_tech_spec.md
+├── sentinel_ops_prd.md
+└── sentinel_ops_tech_spec.md
 ```
 
 ---
@@ -953,7 +953,7 @@ graph LR
 ```bash
 # 1. Clone and set up Python environment
 git clone <repo>
-cd sentinal-ops/agent
+cd sentinel-ops/agent
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 

@@ -31,4 +31,4 @@ uvicorn agent.main:app --reload --port 8000
 ```
 
 ### Next Steps
-- Head to Phase 1 in the `sentinal_ops_phase_plan.md`.
+- Head to Phase 1 in the `sentinel_ops_phase_plan.md`.
