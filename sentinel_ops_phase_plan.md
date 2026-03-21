@@ -97,15 +97,15 @@ The Llama 3B model runs as a **separate FastAPI process** on the same EC2 instan
 **Goal:** Given an incident summary, produce a fully structured RCA JSON using Bedrock + RAG + Git.
 
 ### Deliverables
-- [ ] OpenSearch Serverless index created with k-NN mapping (or local OpenSearch via Docker for dev)
-- [ ] RAG indexer: script to ingest runbooks/historical incidents into vector index
-- [ ] `vector_retrieval.py` — embed incident + query top-5 similar past incidents
-- [ ] `git_correlator.py` — GitHub API client; fetch PRs merged in last 24h across registered repos
-- [ ] `bedrock_client.py` — Claude 3.5 Sonnet invocation via boto3 with RCA prompt template
-- [ ] `orchestrator.py` — `asyncio.gather()` for parallel RAG + Git retrieval
-- [ ] RCA JSON validated against schema (pydantic model)
-- [ ] `POST /api/incidents/:id/rca` populated and queryable
-- [ ] Unit tests: mock Bedrock response, assert RCA matches schema; mock GitHub API
+- [x] OpenSearch Serverless index created with k-NN mapping (Docker for local dev)
+- [x] RAG indexer: script to ingest runbooks/historical incidents into vector index (`scripts/rag_indexer.py` — 7 runbooks seeded)
+- [x] `vector_retrieval.py` — embed incident + query top-5 similar past incidents
+- [x] `git_correlator.py` — GitHub API client; fetch PRs merged in last 24h across registered repos
+- [x] `bedrock_client.py` — Claude 3.5 Sonnet invocation via boto3 with RCA prompt template + local MOCK fallback
+- [x] `orchestrator.py` — `asyncio.gather()` for parallel RAG + Git retrieval, wired to Bedrock
+- [x] RCA JSON validated against schema (pydantic model)
+- [x] `POST /api/incidents/:id/rca` populated and queryable
+- [x] Unit tests: mock Bedrock response, assert RCA matches schema; mock GitHub API
 
 ### Test Gate
 ```bash
@@ -126,15 +126,15 @@ In local dev, Bedrock is called with **real AWS credentials** (cheapest test = C
 **Goal:** RCA → Slack alert with interactive buttons → human approval → action dispatched.
 
 ### Deliverables
-- [ ] Slack App created in dev workspace (free tier)
-- [ ] `slack_notifier.py` — Block Kit composer; posts RCA alert to `#incidents` channel
-- [ ] `POST /slack/actions` webhook handler — HMAC-SHA256 signature verification
-- [ ] Guardrail Layer 1 (`guardrails.py`) — hard gate checks before any action
-- [ ] `executor.py` — handles `approve_rollback`, `create_jira`, `dismiss` actions
-- [ ] Jira API client (`create_issue` from RCA data)
-- [ ] ngrok tunnel wired to local FastAPI for Slack callback testing
-- [ ] Audit events: `ALERT_SENT`, `HUMAN_DECISION`, `GUARDRAIL_TRIGGERED`, `MITIGATION_EXECUTED`
-- [ ] E2E test: mock incident → Slack alert → simulate button click → verify audit log
+- [x] Slack App created in dev workspace (free tier)
+- [x] `slack_notifier.py` — Block Kit composer; posts RCA alert to `#incidents` channel
+- [x] `POST /slack/actions` webhook handler — HMAC-SHA256 signature verification
+- [x] Guardrail Layer 1 (`guardrails.py`) — hard gate checks before any action
+- [x] `executor.py` — handles `approve_rollback`, `create_jira`, `dismiss` actions
+- [ ] Jira API client (`create_issue` from RCA data) — stub wired; real API call is Phase 3b
+- [x] ngrok tunnel wired to local FastAPI for Slack callback testing
+- [x] Audit events: `ALERT_SENT`, `HUMAN_DECISION`, `GUARDRAIL_TRIGGERED`, `MITIGATION_EXECUTED`
+- [x] E2E test: mock incident → Slack alert → simulate button click → verify audit log
 
 ### Test Gate
 ```bash

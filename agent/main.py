@@ -12,6 +12,7 @@ from agent.api.incidents import router as incidents_router
 from agent.api.audit import router as audit_router
 from agent.api.repositories import router as repositories_router
 from agent.api.guardrails import router as guardrails_router
+from agent.api.slack import router as slack_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 logger = logging.getLogger(__name__)
@@ -45,6 +46,7 @@ app.include_router(incidents_router, prefix="/api/incidents", tags=["incidents"]
 app.include_router(audit_router, prefix="/api/audit", tags=["audit"])
 app.include_router(repositories_router, prefix="/api/repositories", tags=["repositories"])
 app.include_router(guardrails_router, prefix="/api/guardrails", tags=["guardrails"])
+app.include_router(slack_router, prefix="/slack", tags=["slack"])
 
 
 @app.get("/health", tags=["health"])
