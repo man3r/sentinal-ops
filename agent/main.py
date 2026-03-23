@@ -13,6 +13,9 @@ from agent.api.audit import router as audit_router
 from agent.api.repositories import router as repositories_router
 from agent.api.guardrails import router as guardrails_router
 from agent.api.slack import router as slack_router
+from agent.api.integrations import router as integrations_router
+from agent.api.analytics import router as analytics_router
+from agent.api.integrations import ping_all_integrations
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 logger = logging.getLogger(__name__)
@@ -21,6 +24,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("SentinelOps Agent starting up...")
+    import asyncio
+    asyncio.create_task(ping_all_integrations())
     yield
     logger.info("SentinelOps Agent shutting down...")
 
@@ -44,8 +49,10 @@ app.add_middleware(
 app.include_router(internal_router, prefix="/internal", tags=["internal"])
 app.include_router(incidents_router, prefix="/api/incidents", tags=["incidents"])
 app.include_router(audit_router, prefix="/api/audit", tags=["audit"])
+app.include_router(analytics_router, prefix="/api/analytics", tags=["analytics"])
 app.include_router(repositories_router, prefix="/api/repositories", tags=["repositories"])
 app.include_router(guardrails_router, prefix="/api/guardrails", tags=["guardrails"])
+app.include_router(integrations_router, prefix="/api/integrations", tags=["integrations"])
 app.include_router(slack_router, prefix="/slack", tags=["slack"])
 
 
@@ -57,3 +64,15 @@ async def health_check():
         "service": "sentinelops-agent",
         "version": "1.0.0",
     }
+
+
+@app.post("/api/payments", tags=["simulations"])
+async def process_payment(payload: dict):
+    """
+    Simulated Buggy Payment Endpoint for SentinelOps E2E testing.
+    Crashes if amount is 0 (division by zero bug).
+    """
+    amount = payload.get("amount", 0)
+    # Simulate a critical logic error
+    result = 100 / amount
+    return {"status": "success", "processed_amount": result}
