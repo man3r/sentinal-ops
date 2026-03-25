@@ -81,6 +81,7 @@ class RCAResponse(BaseModel):
     five_whys: list[WhyEntry]
     action_items: ActionItems
     impact_analysis: ImpactAnalysis
+    llm_model: Optional[str] = None
     bedrock_tokens: Optional[int]
     created_at: datetime
 

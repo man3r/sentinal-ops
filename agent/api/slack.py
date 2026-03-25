@@ -62,6 +62,7 @@ def _verify_slack_signature(body: bytes, timestamp: str, signature: str) -> bool
 # ── Route ─────────────────────────────────────────────────────────────────────
 
 @router.post("/actions", status_code=status.HTTP_200_OK)
+@router.post("/actions/", status_code=status.HTTP_200_OK)
 async def slack_actions(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Slack interactive component webhook.

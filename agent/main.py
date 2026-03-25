@@ -13,6 +13,9 @@ from agent.api.audit import router as audit_router
 from agent.api.repositories import router as repositories_router
 from agent.api.guardrails import router as guardrails_router
 from agent.api.slack import router as slack_router
+from agent.api.analytics import router as analytics_router
+from agent.api.integrations import router as integrations_router
+from agent.api.config import router as config_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 logger = logging.getLogger(__name__)
@@ -47,6 +50,9 @@ app.include_router(audit_router, prefix="/api/audit", tags=["audit"])
 app.include_router(repositories_router, prefix="/api/repositories", tags=["repositories"])
 app.include_router(guardrails_router, prefix="/api/guardrails", tags=["guardrails"])
 app.include_router(slack_router, prefix="/slack", tags=["slack"])
+app.include_router(analytics_router, prefix="/api/analytics", tags=["analytics"])
+app.include_router(integrations_router, prefix="/api/integrations", tags=["integrations"])
+app.include_router(config_router, prefix="/api/config", tags=["config"])
 
 
 @app.get("/health", tags=["health"])

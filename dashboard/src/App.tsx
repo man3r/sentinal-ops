@@ -9,6 +9,7 @@ import GuardrailConfig from './pages/GuardrailConfig';
 import TokenSpend from './pages/TokenSpend';
 import KnowledgeBase from './pages/KnowledgeBase';
 import Observatory from './pages/Observatory';
+import IncidentStudio from './pages/IncidentStudio';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="guardrails" element={<GuardrailConfig />} />
           <Route path="spend" element={<TokenSpend />} />
           <Route path="knowledge" element={<KnowledgeBase />} />
+          <Route path="studio" element={<IncidentStudio />} />
         </Route>
       </Routes>
     </BrowserRouter>

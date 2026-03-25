@@ -4,7 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area, Legend
 } from 'recharts';
-import { Eye, Clock, Zap, Target, AlertTriangle, Loader2 } from 'lucide-react';
+import { Eye, Clock, Zap, Target, AlertTriangle, Loader2, CheckCircle2 } from 'lucide-react';
 
 const API_URL = 'http://localhost:8000';
 
@@ -194,6 +194,58 @@ export default function Observatory() {
                   />
                   <Area type="monotone" dataKey="score" stroke="#22d3ee" fillOpacity={1} fill="url(#colorConfidence)" strokeWidth={2} />
                 </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* 5. Hourly Incident Hotspots */}
+          <div className="glass-panel p-6 rounded-xl flex flex-col bg-slate-900/40 min-h-[400px]">
+            <h3 className="text-lg font-medium text-white mb-6 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-cyber-yellow" /> Hourly Incident Hotspots (24h)
+            </h3>
+            <div className="flex-1 w-full h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={metrics.hourly_distribution}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                  <XAxis dataKey="hour" stroke="#64748b" fontSize={12} axisLine={false} tickLine={false} tickFormatter={(h) => `${h}h`} />
+                  <YAxis stroke="#64748b" fontSize={12} axisLine={false} tickLine={false} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}
+                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                  />
+                  <Bar dataKey="count" fill="#eab308" radius={[4, 4, 0, 0]} barSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* 6. Resolution Progress */}
+          <div className="glass-panel p-6 rounded-xl flex flex-col bg-slate-900/40 min-h-[400px]">
+            <h3 className="text-lg font-medium text-white mb-6 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-cyber-green" /> Resolution Progress
+            </h3>
+            <div className="flex-1 w-full h-[300px] flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={metrics.status_distribution}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={8}
+                    dataKey="count"
+                    nameKey="status"
+                  >
+                    {metrics.status_distribution.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={entry.status === 'RESOLVED' ? COLORS.cyan : COLORS.sev1} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                     contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}
+                  />
+                  <Legend verticalAlign="bottom" height={36}/>
+                </PieChart>
               </ResponsiveContainer>
             </div>
           </div>

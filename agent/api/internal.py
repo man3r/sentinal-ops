@@ -35,6 +35,7 @@ async def trigger_incident(
         confidence=incident.confidence,
         error_pattern=incident.error_pattern,
         error_rate_pct=incident.error_rate_pct,
+        sanitized_trace=incident.sanitized_trace,
     )
     db.add(new_incident)
 

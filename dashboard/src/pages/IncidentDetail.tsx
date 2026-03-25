@@ -13,7 +13,8 @@ import {
   CheckCircle2,
   Trello,
   Calendar,
-  X
+  X,
+  BrainCircuit
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -29,6 +30,7 @@ interface RCA {
     preventive_actions: Array<{ action: string; owner: string; created_at: string; due_date: string }>;
     systemic_actions: Array<{ action: string; owner: string; created_at: string; due_date: string }>;
   };
+  llm_model: string | null;
 }
 
 export default function IncidentDetail() {
@@ -40,12 +42,15 @@ export default function IncidentDetail() {
   const [creatingJira, setCreatingJira] = useState(false);
 
   useEffect(() => {
+    let interval: any;
+
     async function fetchData() {
       try {
         const [incRes, rcaRes] = await Promise.all([
           axios.get(`${API_URL}/api/incidents/${id}`),
           axios.get(`${API_URL}/api/incidents/${id}/rca`).catch(() => ({ data: null }))
         ]);
+        
         setIncident(incRes.data);
         if (rcaRes.data) {
           setRca(rcaRes.data);
@@ -56,8 +61,20 @@ export default function IncidentDetail() {
         setLoading(false);
       }
     }
+
     fetchData();
-  }, [id]);
+    
+    // Start polling if RCA is not yet available
+    interval = setInterval(() => {
+      if (!rca) {
+        fetchData();
+      } else {
+        clearInterval(interval);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [id, !!rca]);
 
   const formatDateForInput = (dateStr: string) => {
     try {
@@ -133,7 +150,11 @@ export default function IncidentDetail() {
                 <ShieldAlert className="w-5 h-5 text-cyber-purple" />
                 Root Cause Synthesis
               </h2>
-              <p className="text-slate-300 leading-relaxed">{rca.root_cause}</p>
+              <p className="text-slate-300 leading-relaxed mb-4">{rca.root_cause}</p>
+              <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500 uppercase tracking-wider pt-4 border-t border-white/5">
+                <BrainCircuit className="w-4 h-4 text-cyber-cyan" />
+                Reasoning Engine: <span className="text-cyber-cyan">{rca.llm_model || 'Unknown Agent'}</span>
+              </div>
             </section>
 
             {/* Causal Commit */}

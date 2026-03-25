@@ -16,7 +16,7 @@ import logging
 import uuid
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.config import settings
@@ -37,10 +37,8 @@ async def _build_incident_dict(incident: Incident) -> dict[str, Any]:
         "affected_service": incident.affected_service,
         "severity": incident.severity,
         "confidence": float(incident.confidence) if incident.confidence else None,
-        # error_pattern and sanitized_trace will be enriched from the incoming
-        # IncidentSummary payload in Phase 3 when we carry context through.
-        "error_pattern": "See sanitized trace",
-        "sanitized_trace": "",
+        "error_pattern": incident.error_pattern,
+        "sanitized_trace": incident.sanitized_trace,
     }
 
 
@@ -85,9 +83,9 @@ async def _execute(incident_id: str, db: AsyncSession) -> None:
         )
         logger.info(f"  RAG: {len(rag_context)} hits  |  Git: {len(git_prs)} recent PRs")
 
-        # ── 4. Bedrock: Generate RCA ───────────────────────────────────────────
+        # ── 4. Bedrock / Ollama: Generate RCA ───────────────────────────────────
         incident_dict = await _build_incident_dict(incident)
-        rca_data, token_count = await generate_rca(incident_dict, rag_context, git_prs)
+        rca_data, token_count, model_name = await generate_rca(incident_dict, rag_context, git_prs)
 
         # ── 5. Persist RCAReport ───────────────────────────────────────────────
         rca_report = RCAReport(
@@ -96,7 +94,9 @@ async def _execute(incident_id: str, db: AsyncSession) -> None:
             five_whys=rca_data.get("five_whys", []),
             action_items=rca_data.get("action_items", {}),
             impact_analysis=rca_data.get("impact_analysis", {}),
+            llm_model=model_name,
             bedrock_tokens=token_count,
+            created_at=func.now()
         )
         db.add(rca_report)
 

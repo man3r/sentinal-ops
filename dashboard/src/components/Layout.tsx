@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { ShieldCheck, Activity, Database, ShieldAlert, Library, BarChart3, Settings, Blocks, Eye } from 'lucide-react';
+import { ShieldCheck, Activity, Database, ShieldAlert, Library, BarChart3, Settings, Blocks, Eye, FlaskConical } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { path: '/knowledge', label: 'Knowledge Base', icon: Library },
   { path: '/guardrails', label: 'Guardrails', icon: ShieldAlert },
   { path: '/spend', label: 'Token Spend', icon: BarChart3 },
+  { path: '/studio', label: 'Incident Studio', icon: FlaskConical },
 ];
 
 export default function Layout() {

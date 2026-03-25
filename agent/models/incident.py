@@ -22,5 +22,6 @@ class Incident(Base):
     confidence: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 3), nullable=True)
     error_pattern: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     error_rate_pct: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2), nullable=True)
+    sanitized_trace: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Full raw context for LLM
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -17,45 +17,94 @@ logger = logging.getLogger(__name__)
 
 # ── RCA Fallback (local dev mock) ──────────────────────────────────────────────
 
+SCENARIO_TEMPLATES = {
+    "DATABASE": {
+        "root_cause": "A connection pool saturation in the {service} data layer blocked transactional throughput, likely triggered by a surge in long-running queries.",
+        "five_whys": [
+            {"why": 1, "question": "Why is {service} failing?", "answer": "The database connection pool is exhausted, leading to timeouts."},
+            {"why": 2, "question": "Why is the pool exhausted?", "answer": "Active connections are hanging on read-latency from the secondary partition."},
+            {"why": 3, "question": "Why is latency high on the secondary?", "answer": "An unoptimized migration added a large index in the background without a maintenance window."},
+            {"why": 4, "question": "Why was the migration unoptimized?", "answer": "The CI/CD pipeline lacked a query-plan analyzer for the new schema changes."},
+            {"why": 5, "question": "Why was the analyzer missing?", "answer": "The SRE core library hasn't been updated to include Postgres 16 specific plan validation."},
+        ],
+        "action_items": {
+            "corrective": "Temporarily double the MAX_CONNECTIONS in the production k8s ConfigMap.",
+            "preventive": "Implement query-plan linting in the pre-deployment pipeline.",
+        }
+    },
+    "LOGIC": {
+        "root_cause": "An unhandled {error} in {service} flow control caused 5xx bubbling to the gateway. This correlates with edge-case parameter handling.",
+        "five_whys": [
+            {"why": 1, "question": "Why is {service} returning 5xx?", "answer": "It is encountering an unhandled {error} during the {service} execution cycle."},
+            {"why": 2, "question": "Why is this exception unhandled?", "answer": "The try-except block was too narrow, missing the specific subclass of this error."},
+            {"why": 3, "question": "Why was the block narrow?", "answer": "The feature was refactored recently and the error handling wasn't reviewed for parity."},
+            {"why": 4, "question": "Why did code review miss this?", "answer": "The reviewer focused on the happy-path throughput rather than failure state coverage."},
+            {"why": 5, "question": "Why is failure coverage not mandatory?", "answer": "Code coverage gates are set only to 70%, which allows critical logic paths to remain untested."},
+        ],
+        "action_items": {
+            "corrective": "Deploy a hotfix patch to the error-handler module to intercept {error}.",
+            "preventive": "Increase mandatory code coverage gate to 90% for the core logic pkg.",
+        }
+    },
+    "RESOURCE": {
+        "root_cause": "Memory pressure on the {service} pod led to GC thrashing and eventual OOMKill. This points to a potential leak in the cache-eviction logic.",
+        "five_whys": [
+            {"why": 1, "question": "Why did {service} restart?", "answer": "It was OOMKilled by the node after exceeding the 2Gi limit."},
+            {"why": 2, "question": "Why was memory usage so high?", "answer": "The internal LRU cache for user-state was not evicting stale objects."},
+            {"why": 3, "question": "Why was eviction failing?", "answer": "A bug in the timestamp comparison caused all objects to be flagged as 'permanent'."},
+            {"why": 4, "question": "Why was this not caught in load tests?", "answer": "Load test durations are only 10 minutes, too short for this gradual leak to manifest."},
+            {"why": 5, "question": "Why are load tests short?", "answer": "To save costs on the CI runners, durations were capped last quarter."},
+        ],
+        "action_items": {
+            "corrective": "Increase k8s memory limits while a patch for the cache logic is developed.",
+            "preventive": "Implement a 60-minute 'Soak Test' for all changes affecting core state memory.",
+        }
+    }
+}
+
 def generate_dynamic_mock_rca(incident: dict[str, Any], git_prs: list[dict[str, Any]]) -> dict[str, Any]:
-    """
-    Generates a deterministic but incident-specific mock RCA for local dev.
-    Ensures the 'hardcoded' feeling is avoided by injecting real service and error data.
-    """
+    """Generates a scenario-based mock RCA for real-world simulation flavor."""
     service = incident.get("affected_service", "unknown-service")
-    error = incident.get("error_pattern", "Unexpected 5xx Error")
+    error = incident.get("error_pattern", "Unexpected Anomaly")
     
-    # Try to find a 'causal' PR from the list
+    # Select Scenario
+    scenario_key = "LOGIC"
+    if any(k in error.upper() for k in ["DB", "DATABASE", "CONNECTION", "TIMEOUT", "POOL"]):
+        scenario_key = "DATABASE"
+    elif any(k in error.upper() for k in ["MEMORY", "OOM", "GC", "THROTTLE"]):
+        scenario_key = "RESOURCE"
+    
+    template = SCENARIO_TEMPLATES[scenario_key]
     causal_pr = git_prs[0] if git_prs else None
+
+    # Inject variables into template
+    def fmt(s): return s.format(service=service, error=error)
     
     return {
-        "root_cause": f"A regression in {service} logic flow triggered an unhandled {error}. The issue correlates with recent changes in the processing pipeline.",
+        "root_cause": fmt(template["root_cause"]),
         "causal_commit": causal_pr.get("sha") if causal_pr else None,
         "causal_repo": causal_pr.get("repo") if causal_pr else None,
         "causal_pr": causal_pr.get("number") if causal_pr else None,
         "five_whys": [
-            {"why": 1, "question": f"Why is {service} returning errors?", "answer": f"It is encountering an unhandled {error} during execution."},
-            {"why": 2, "question": f"Why is this error unhandled?", "answer": "The logic block lacked proper boundary validation for edge-case payloads."},
-            {"why": 3, "question": "Why was the validation missing?", "answer": "The recent feature implementation focused on happy-path throughput without error-state parity."},
-            {"why": 4, "question": "Why did testing not catch this?", "answer": "Unit tests were present but did not cover the specific input vector causing the crash."},
-            {"why": 5, "question": "Why was coverage incomplete?", "answer": "The PR was approved without a code-coverage gate requirement for the new module."},
+            {"why": w["why"], "question": fmt(w["question"]), "answer": fmt(w["answer"])}
+            for w in template["five_whys"]
         ],
         "impact_analysis": {
-            "affected_users": 150,
-            "stalled_transactions": 12,
-            "revenue_at_risk": "$4,500/hr",
-            "duration_minutes": 18,
+            "affected_users": 280 if scenario_key == "DATABASE" else 45,
+            "stalled_transactions": 32 if scenario_key == "DATABASE" else 4,
+            "revenue_at_risk": "$12,000/hr" if scenario_key == "DATABASE" else "$850/hr",
+            "duration_minutes": 22,
         },
         "action_items": {
             "corrective_actions": [
-                {"action": f"Roll back the most recent deployment to {service} or patch the {error} handler.", "owner": "on-call-sre", "due_date": "Now", "status": "Open"},
+                {"action": fmt(template["action_items"]["corrective"]), "owner": "on-call-sre", "due_date": "Now", "status": "Open"},
             ],
             "preventive_actions": [
-                {"action": "Add specific regression test case for this error pattern.", "owner": "qa-team", "due_date": "Next Sprint", "status": "Open"},
-                {"action": "Enable mandatory code coverage gates for this repository.", "owner": "dev-ops", "due_date": "Next Sprint", "status": "Open"},
+                {"action": fmt(template["action_items"]["preventive"]), "owner": "dev-team", "due_date": "Next Sprint", "status": "Open"},
+                {"action": "Conduct post-mortem review with the architecture board.", "owner": "sre-lead", "due_date": "End of week", "status": "Open"},
             ],
             "systemic_actions": [
-                {"action": "Audit all 5xx recovery paths in the core transaction engine.", "owner": "arch-council", "due_date": "End of Quarter", "status": "Open"},
+                {"action": "Audit systemic failure domain boundaries for similar services.", "owner": "arch-council", "due_date": "End of Month", "status": "Open"},
             ],
         },
     }
@@ -110,47 +159,85 @@ Return ONLY a valid JSON object with these exact keys:
 Return ONLY valid JSON. No markdown. No explanation."""
 
 
-# ── Main Bedrock Invocation ────────────────────────────────────────────────────
+async def _invoke_local_ollama(prompt: str) -> tuple[dict[str, Any], int | None, str | None]:
+    """Invoke local Ollama/Qwen for sovereign, real-time RCA generation."""
+    import httpx
+    model_name = "qwen2.5-coder:3b"
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                "http://localhost:11434/api/generate",
+                json={
+                    "model": model_name,
+                    "prompt": prompt,
+                    "stream": False,
+                    "format": "json",
+                }
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                content = data.get("response", "{}")
+                if content.strip().startswith("```"):
+                   content = content.replace("```json", "").replace("```", "").strip()
+                rca = json.loads(content)
+                return rca, 0, f"ollama:{model_name}"
+    except Exception as e:
+        logger.warning(f"Ollama local connector failed: {e}")
+    return None, None, None
 
 async def generate_rca(
     incident: dict[str, Any],
     rag_context: list[dict[str, Any]],
     git_prs: list[dict[str, Any]],
-) -> tuple[dict[str, Any], int | None]:
+) -> tuple[dict[str, Any], int | None, str]:
     """
-    Call Claude 3.5 Sonnet on Bedrock to generate a structured RCA.
-    Returns: (rca_dict, bedrock_token_count)
-
-    Falls back to MOCK_RCA gracefully in local dev (no AWS creds needed).
+    Returns: (rca_dict, token_count, model_name)
     """
     prompt = _build_rca_prompt(incident, rag_context, git_prs)
 
-    try:
-        client = boto3.client("bedrock-runtime", region_name=settings.aws_region)
-        body = json.dumps(
-            {
+    # Layer 1: Attempt Cloud Bedrock
+    if settings.aws_region and settings.bedrock_model_id:
+        try:
+            client = boto3.client("bedrock-runtime", region_name=settings.aws_region)
+            # ... invocation code ...
+            body = json.dumps({
                 "anthropic_version": "bedrock-2023-05-31",
                 "max_tokens": 2048,
-                "temperature": 0.1,  # Low temp for deterministic structured JSON
+                "temperature": 0.1,
                 "messages": [{"role": "user", "content": prompt}],
-            }
-        )
-        response = client.invoke_model(modelId=settings.bedrock_model_id, body=body)
-        result = json.loads(response["body"].read())
-        content = result["content"][0]["text"].strip()
-        tokens = result.get("usage", {}).get("output_tokens", 0)
+            })
+            response = client.invoke_model(modelId=settings.bedrock_model_id, body=body)
+            result = json.loads(response["body"].read())
+            content = result["content"][0]["text"].strip()
+            tokens = result.get("usage", {}).get("output_tokens", 0)
+            
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.startswith("json"): content = content[4:]
 
-        # Strip markdown code fences if model wraps its response
-        if content.startswith("```"):
-            content = content.split("```")[1]
-            if content.startswith("json"):
-                content = content[4:]
+            return json.loads(content), tokens, f"bedrock:{settings.bedrock_model_id}"
+        except Exception:
+            pass
 
-        rca = json.loads(content)
-        logger.info(f"✅ Bedrock RCA generated ({tokens} output tokens)")
-        return rca, tokens
+    # Layer 2: Attempt Local Ollama (Sovereign)
+    ollama_rca, tokens, model = await _invoke_local_ollama(prompt)
+    if ollama_rca:
+        return ollama_rca, tokens, model
 
-    except Exception as e:
-        logger.warning(f"Bedrock call failed (or credentials missing): {e} — generating dynamic mock.")
+    # Layer 3: Deterministic Mock Fallback
+    return generate_dynamic_mock_rca(incident, git_prs), 0, "mock:template"
 
-    return generate_dynamic_mock_rca(incident, git_prs), None
+def get_active_engine_name() -> str:
+    """Helper for UI to show what is actually configured."""
+    # This logic matches the generation tier order
+    if settings.aws_region and settings.bedrock_model_id:
+        try:
+            import boto3
+            # Check for generic credentials
+            session = boto3.Session()
+            if session.get_credentials():
+                return f"Bedrock (Claude 3.5 Sonnet)"
+        except Exception:
+            pass
+    
+    return "Local Ollama (Qwen 2.5 Coder)"

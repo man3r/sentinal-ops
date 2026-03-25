@@ -84,10 +84,32 @@ async def get_analytics_metrics(db: AsyncSession = Depends(get_db)):
     mttr_result = await db.execute(mttr_query)
     avg_mttr = mttr_result.scalar() or 0
 
+    # ── 6. Hourly Incident Distribution (24h clock) ──────────────────────────
+    hour_query = (
+        select(
+            extract('hour', Incident.created_at).label('hour'),
+            func.count(Incident.id).label('count')
+        )
+        .group_by('hour')
+        .order_by('hour')
+    )
+    hour_result = await db.execute(hour_query)
+    hour_distribution = [{"hour": int(row.hour), "count": row.count} for row in hour_result]
+
+    # ── 7. Status Distribution ───────────────────────────────────────────────
+    status_query = (
+        select(Incident.status, func.count(Incident.id))
+        .group_by(Incident.status)
+    )
+    status_result = await db.execute(status_query)
+    status_distribution = [{"status": row[0], "count": row[1]} for row in status_result]
+
     return {
         "velocity": velocity_data,
         "severity_distribution": severity_data,
         "top_services": service_data,
         "confidence_trend": confidence_data,
-        "mttr_avg_minutes": round(float(avg_mttr), 1)
+        "mttr_avg_minutes": round(float(avg_mttr), 1),
+        "hourly_distribution": hour_distribution,
+        "status_distribution": status_distribution
     }

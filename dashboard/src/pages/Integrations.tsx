@@ -235,6 +235,22 @@ export default function Integrations() {
           <input name="uri" defaultValue="secret/path/to/db_uri" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200" />
         </>
       );
+      case 'jira': return (
+        <>
+          <label className="block text-xs font-mono text-slate-400 mb-1">Jira Host URL</label>
+          <input name="url" defaultValue={configData.url || "https://your-domain.atlassian.net"} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 mb-4" />
+          <label className="block text-xs font-mono text-slate-400 mb-1">API Token (Vault ARN)</label>
+          <input name="secret" placeholder="arn:aws:secretsmanager:..." className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 mb-4" />
+          <label className="block text-xs font-mono text-slate-400 mb-1">Default Project Key</label>
+          <input name="project" defaultValue={configData.project || "SENTINEL"} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 mb-4" />
+          <label className="block text-xs font-mono text-slate-400 mb-1">Default Jira Board</label>
+          <select name="board" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 cursor-pointer outline-none">
+            <option>SRE Operations Board</option>
+            <option>Payment Gateway Core</option>
+            <option>Mobile App Backend</option>
+          </select>
+        </>
+      );
       default: return (
         <>
           <label className="block text-xs font-mono text-slate-400 mb-1">API Uniform Resource Locator</label>
