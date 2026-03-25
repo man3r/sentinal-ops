@@ -16,7 +16,7 @@ def compute_hash(
     # Sort keys for deterministic JSON serialization
     payload_str = json.dumps(payload, sort_keys=True)
     
-    # Pipe-separated attributes
-    raw = f"{prev_hash or ''}|{event_type}|{actor or ''}|{payload_str}|{incident_id or ''}"
+    # Optimization: removed incident_id from hash to allow certain events to be 'portable' or shared
+    raw = f"{prev_hash or ''}|{event_type}|{actor or ''}|{payload_str}"
     
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
